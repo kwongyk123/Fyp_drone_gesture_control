@@ -51,9 +51,10 @@ class GestureController:
                 elif gesture_id == 5: # RIGHT
                     self.left_right_velocity = -20
 
-                # elif gesture_id == 8: #rotate
-                #     self.yaw_velocity = 20
-                #
+                elif gesture_id == 9: #rotate
+                    self.yaw_velocity = 20
+                elif gesture_id == 10: #rotate
+                    self.yaw_velocity = -20
 
                 elif gesture_id == -1:
                     self.forw_back_velocity = self.up_down_velocity = \

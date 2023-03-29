@@ -13,7 +13,6 @@ class GestureBuffer:
 
     def get_gesture(self):
         counter = Counter(self._buffer).most_common()
-        print("counter:", counter)
         if counter:
             if counter[0][1] >= (self.buffer_len - 1):
                 self._buffer.clear()
