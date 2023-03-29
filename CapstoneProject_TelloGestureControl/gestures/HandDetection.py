@@ -33,7 +33,7 @@ while True:
     allHands, img = detectorHands.findHands(img)
     img, bboxs = detectorFace.findFaces(img, draw=True)
 
-    # check if allHands is not empty
+    # check if allHands is not emptyx
     if bboxs:
         if allHands:
             if allHands[0]['type'] == "Right" and drone.is_flying:
