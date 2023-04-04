@@ -7,14 +7,11 @@ from gestures.gestureBuffer import GestureBuffer
 from gestures.gesturecontroller import GestureController
 import time
 
-#cap = cv2.VideoCapture(0)
-detectorHands = HandDetector(maxHands=1, detectionCon=0.65)
+detectorHands = HandDetector(maxHands=1, detectionCon=0.7)
 detectorFace = FaceDetector()
 
-# cap = cv2.VideoCapture(0)
-# _, img = cap.read()
-# hi, wi, _ = img.shape
 hi, wi = 480, 640
+
 #                  P  I  D
 xPID = cvzone.PID([0.27, 0, 0.1], wi // 2)
 yPID = cvzone.PID([0.25, 0, 0.1], hi // 2, axis=1)
@@ -42,7 +39,7 @@ modeText = "Gesture"
 
 def gestureControl(img, bboxs,allHands):
     gestureText = ""
-    # check if allHands is not emptyx
+    # check if allHands is not empty
     if bboxs:
         if allHands and drone.is_flying:
             if allHands[0]['type'] == "Right":
@@ -117,7 +114,13 @@ def faceTracking(img, bboxs, allHands):
             if allHands[0]['type'] == "Right" and drone.is_flying:
                 fingers = detectorHands.fingersUp(allHands)
                 if fingers == [0, 0, 1, 1, 1]:
-                    drone.land()
+                    gestureText = "land"
+                    gesture_buffer.add_gesture(100)
+                    cv2.putText(img, f'{gestureText}', (20, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+                    gesture_id = gesture_buffer.get_gesture()
+                    gestureController.gesture_control(gesture_id)
+                else:
+                    gestureText = ""
 
         cx, cy = bboxs[0]['center']
         x, y, w, h = bboxs[0]['bbox']
@@ -134,15 +137,15 @@ def faceTracking(img, bboxs, allHands):
 
         imgPlotZ = myPlotZ.update(-zVal)
 
-        # img = xPID.draw(img, [cx, cy])
-        # img = yPID.draw(img, [cx, cy])
-        # imgStacked = cvzone.stackImages([img, imgPlotX_resized, imgPlotY_resized, imgPlotZ_resized], 2, 1)
-        #imgStacked = cvzone.stackImages([img, imgPlotX, imgPlotY, imgPlotZ], 2, 1)
-        #cv2.putText(imgStacked, str(area), (20, 50), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 0), 3)
-    # else:
-    #     imgStacked = cvzone.stackImages([img], 1, 0.75)
+        img = xPID.draw(img, [cx, cy])
+        img = yPID.draw(img, [cx, cy])
+        imgStacked = cvzone.stackImages([img, imgPlotX, imgPlotY, imgPlotZ], 2, 1)
+        cv2.putText(imgStacked, str(area), (20, 50), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 0), 3)
+    else:
+        imgStacked = cvzone.stackImages([img], 1, 0.75)
     drone.send_rc_control(0, -zVal, -yVal, xVal)
-    #cv2.imshow("Image Stacked", imgStacked)
+    return imgStacked
+
 
 
 while True:
@@ -156,15 +159,14 @@ while True:
         gestureControl(img, bboxs, allHands)
         modeText = "Gesture"
     elif mode == 2:
-        faceTracking(img, bboxs, allHands)
+        img = faceTracking(img, bboxs, allHands)
         modeText = "FaceTracking"
 
 
-    cv2.putText(img, f'{modeText}', (430, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+    cv2.putText(img, f'{modeText}', (20, 440), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
 
     cv2.imshow("Image", img)
 
-    print("mode: ", mode)
 
     if cv2.waitKey(5) & 0xFF == ord('g') and drone.is_flying:
         mode = 1
@@ -177,9 +179,9 @@ while True:
         time.sleep(1.5)
 
     if cv2.waitKey(5) & 0xFF == ord('q'):
-        drone.land()
-        mode = 0
         break
 
 cv2.destroyAllWindows()
+drone.land()
+
 
