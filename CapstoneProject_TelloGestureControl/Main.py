@@ -1,11 +1,13 @@
+import logging
 import cv2
-import cvzone
+from FaceTracking.PID import PID
+from FaceTracking.PlotModule import LivePlot
 from djitellopy import tello
 from gestures.HandTrackingModule import HandDetector
 from Face.FaceDetectModule import FaceDetector
 from gestures.gestureBuffer import GestureBuffer
 from gestures.gesturecontroller import GestureController
-import time
+
 
 detectorHands = HandDetector(maxHands=1, detectionCon=0.7)
 detectorFace = FaceDetector()
@@ -13,13 +15,13 @@ detectorFace = FaceDetector()
 hi, wi = 480, 640
 
 #                  P  I  D
-xPID = cvzone.PID([0.27, 0, 0.1], wi // 2)
-yPID = cvzone.PID([0.25, 0, 0.1], hi // 2, axis=1)
-zPID = cvzone.PID([0.005, 0, 0.001], 12000, limit=[-20, 20])
+xPID = PID([0.27, 0, 0.1], wi // 2)
+yPID = PID([0.27, 0, 0.1], hi // 2, axis=1)
+zPID = PID([0.005, 0, 0.001], 12000, limit=[-20, 20])
 
-myPlotX = cvzone.LivePlot(yLimit=[-100, 100], char="X")
-myPlotY = cvzone.LivePlot(yLimit=[-100, 100], char="Y")
-myPlotZ = cvzone.LivePlot(yLimit=[-100, 100], char="Z")
+myPlotX = LivePlot(yLimit=[-100, 100], char="X")
+myPlotY = LivePlot(yLimit=[-100, 100], char="Y")
+myPlotZ = LivePlot(yLimit=[-100, 100], char="Z")
 
 drone = tello.Tello()
 drone.connect()
@@ -30,14 +32,25 @@ global gestureController
 gestureController = GestureController(drone)
 
 global gesture_buffer
-gesture_buffer = GestureBuffer()
-# 0 = keyboard, 1 = gesture, 2 = facet-racking
+gesture_buffer = GestureBuffer(buffer_len=13)
 
+# 1 = gesture, 2 = facet-racking
+global mode
 mode = 1
 gestureText = ""
 modeText = "Gesture"
 
-def gestureControl(img, bboxs,allHands):
+# global recorder
+# global keepRecording
+# keepRecording = False
+# counter = 0
+
+
+
+def gestureControl(img, bboxs, allHands):
+    global mode
+    # global keepRecording
+    # global recorder
     gestureText = ""
     # check if allHands is not empty
     if bboxs:
@@ -83,8 +96,21 @@ def gestureControl(img, bboxs,allHands):
                 elif fingers == [0, 0, 1, 1, 1]:
                     gestureText = "land"
                     gesture_buffer.add_gesture(100)
+
+                elif fingers == [1, 1, 1, 0, 0]:
+                    gestureText = "switch Mode"
+                    gesture_buffer.add_gesture(200)
+
+                # elif fingers == [0, 1, 1, 1, 1]:
+                #     gestureText = "RecordStart"
+                #     gesture_buffer.add_gesture(80)
+
                 cv2.putText(img, f'{gestureText}', (20, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
                 gesture_id = gesture_buffer.get_gesture()
+
+                if gesture_id == 200:
+                    mode = 2
+
                 gestureController.gesture_control(gesture_id)
 
             elif allHands[0]['type'] == "Left":
@@ -99,16 +125,24 @@ def gestureControl(img, bboxs,allHands):
                     gestureText = "RotateLeft"
                     gesture_buffer.add_gesture(10)
 
+                # elif fingers == [0, 1, 1, 1, 1]:
+                #     gestureText = "RecordStop"
+                #     gesture_buffer.add_gesture(81)
+
+                cv2.putText(img, f'{gestureText}', (20, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
                 gesture_id = gesture_buffer.get_gesture()
+
                 gestureController.gesture_control(gesture_id)
 
-        cv2.putText(img, f'{gestureText}', (20, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+
+
 
 def faceTracking(img, bboxs, allHands):
     xVal = 0
     yVal = 0
     zVal = 0
-
+    imgStacked = ""
+    global mode
     if bboxs and drone.is_flying:
         if allHands:
             if allHands[0]['type'] == "Right" and drone.is_flying:
@@ -116,11 +150,17 @@ def faceTracking(img, bboxs, allHands):
                 if fingers == [0, 0, 1, 1, 1]:
                     gestureText = "land"
                     gesture_buffer.add_gesture(100)
-                    cv2.putText(img, f'{gestureText}', (20, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
-                    gesture_id = gesture_buffer.get_gesture()
-                    gestureController.gesture_control(gesture_id)
+                elif fingers == [1, 1, 1, 0, 0]:
+                    gestureText = "switch Mode"
+                    gesture_buffer.add_gesture(201)
                 else:
                     gestureText = ""
+                cv2.putText(img, f'{gestureText}', (20, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+                gesture_id = gesture_buffer.get_gesture()
+                if gesture_id == 201:
+                    mode = 1
+                    gestureController.drone_stop()
+                gestureController.gesture_control(gesture_id)
 
         cx, cy = bboxs[0]['center']
         x, y, w, h = bboxs[0]['bbox']
@@ -139,49 +179,72 @@ def faceTracking(img, bboxs, allHands):
 
         img = xPID.draw(img, [cx, cy])
         img = yPID.draw(img, [cx, cy])
-        imgStacked = cvzone.stackImages([img, imgPlotX, imgPlotY, imgPlotZ], 2, 1)
+        imgStacked = LivePlot.stackImages([img, imgPlotX, imgPlotY, imgPlotZ], 2, 1)
         cv2.putText(imgStacked, str(area), (20, 50), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 0), 3)
     else:
-        imgStacked = cvzone.stackImages([img], 1, 0.75)
+        imgStacked = LivePlot.stackImages([img], 1, 0.75)
     drone.send_rc_control(0, -zVal, -yVal, xVal)
     return imgStacked
 
 
-
-while True:
-    # _, img = cap.read()
-    img = drone.get_frame_read().frame
-    img = cv2.resize(img, (640, 480))
-    allHands, img = detectorHands.findHands(img)
-    img, bboxs = detectorFace.findFaces(img, draw=True)
-
-    if mode == 1:
-        gestureControl(img, bboxs, allHands)
-        modeText = "Gesture"
-    elif mode == 2:
-        img = faceTracking(img, bboxs, allHands)
-        modeText = "FaceTracking"
+# def videoRecorder(frame_read, filename):
+#     # create a VideoWrite object, recoring to ./video.avi
+#     height, width, _ = frame_read.shape
+#     video = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'MJPG'), 30, (width, height))
+#
+#     while keepRecording:
+#         video.write(frame_read)
+#         time.sleep(1 / 30)
+#
+#     video.release()
 
 
-    cv2.putText(img, f'{modeText}', (20, 440), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+try:
+    while True:
+        # _, img = cap.read()
+        img = drone.get_frame_read().frame
+        # filename = f'Resources/video/video_{counter}.avi'
+        # recorder = Thread(target=videoRecorder, args=(img, filename))
+        # recorder.start()
+        # if keepRecording:
+        #     counter += 1
+        img = cv2.resize(img, (640, 480))
+        allHands, img = detectorHands.findHands(img)
+        img, bboxs = detectorFace.findFaces(img, draw=True)
 
-    cv2.imshow("Image", img)
+        cv2.putText(img, f'{modeText}', (20, 440), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+        # if keepRecording:
+        #     cv2.putText(img, "Recording", (460, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+        if mode == 1:
+            gestureControl(img, bboxs, allHands)
+            modeText = "Gesture"
+        elif mode == 2:
+            img = faceTracking(img, bboxs, allHands)
+            modeText = "FaceTracking"
 
+        cv2.imshow("Image", img)
 
-    if cv2.waitKey(5) & 0xFF == ord('g') and drone.is_flying:
-        mode = 1
+        if cv2.waitKey(5) & 0xFF == ord('g') and drone.is_flying:
+            mode = 1
 
-    if cv2.waitKey(5) & 0xFF == ord('f') and drone.is_flying:
-        mode = 2
+        if cv2.waitKey(5) & 0xFF == ord('f') and drone.is_flying:
+            mode = 2
 
-    if cv2.waitKey(5) & 0xFF == ord('e') and not drone.is_flying:
-        drone.takeoff()
-        time.sleep(1.5)
+        if cv2.waitKey(5) & 0xFF == ord('e') and not drone.is_flying:
+            drone.takeoff()
+            gestureController.drone_stop()
 
-    if cv2.waitKey(5) & 0xFF == ord('q'):
-        break
+        if cv2.waitKey(5) & 0xFF == ord('q'):
+            break
 
-cv2.destroyAllWindows()
-drone.land()
+    if drone.is_flying:
+        # drone.send_rc_control(0, 0, 0, 0)
+        drone.land()
 
+    drone.end()
+    cv2.destroyAllWindows()
+
+except:
+    logging.exception("message")
+    drone.end()
 

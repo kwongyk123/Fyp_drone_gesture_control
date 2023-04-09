@@ -85,7 +85,7 @@ class HandDetector:
     def fingersUp(self, myHand):
         # Finds how many fingers are open and returns in a list.
         # Considers left and right hands separately
-        # :return: List of which fingers are up
+        # return: List of which fingers are up
 
         myHandType = myHand[0]["type"]
         myLmList = myHand[0]["lmList"]

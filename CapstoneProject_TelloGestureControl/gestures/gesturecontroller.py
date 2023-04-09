@@ -12,6 +12,9 @@ class GestureController:
         self.left_right_velocity = 0
         self.yaw_velocity = 0
 
+    def drone_stop(self):
+        self.tello.send_rc_control(0, 0, 0, 0)
+
     def gesture_control(self, gesture_id):
         self._is_landing = False
 
@@ -25,7 +28,6 @@ class GestureController:
         if gesture_id is None:
             print("do nothing")
         else:
-            print("gesutrcontroller/Sendcommand")
             if not self._is_landing:
                 if gesture_id == 2:  # Forward
                     self.forw_back_velocity = 20
@@ -63,6 +65,7 @@ class GestureController:
                 if gesture_id == 8:
                     self.tello.send_control_command("cw {}".format(360))
                 elif gesture_id == 7:  #flip
+                    self.tello.send_rc_control(0, 0, 0, 0)
                     self.tello.flip_right()
                 else:
                     self.tello.send_rc_control(self.left_right_velocity, self.forw_back_velocity,

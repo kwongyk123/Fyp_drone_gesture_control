@@ -20,4 +20,4 @@ class GestureBuffer:
             else:
                 return
         else:
-            print("count is nothing")
+            print("")
