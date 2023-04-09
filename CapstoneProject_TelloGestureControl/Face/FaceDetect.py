@@ -1,8 +1,8 @@
 from djitellopy import tello
 import cv2
-import cvzone
-import time
-from cvzone.FaceDetectionModule import FaceDetector
+from FaceTracking.PID import PID
+from FaceTracking.PlotModule import LivePlot
+from Face.FaceDetectModule import FaceDetector
 
 detector = FaceDetector(minDetectionCon=0.6)
 
@@ -11,13 +11,13 @@ hi, wi = 480, 640
 # _, img = cap.read()
 # hi, wi, _ = img.shape
 #                  P  I  D
-xPID = cvzone.PID([0.27, 0, 0.1], wi // 2)
-yPID = cvzone.PID([0.25, 0, 0.1], hi // 2, axis=1)
-zPID = cvzone.PID([0.005, 0, 0.001], 12000, limit=[-20, 20])
+xPID = PID([0.27, 0, 0.1], wi // 2)
+yPID = PID([0.25, 0, 0.1], hi // 2, axis=1)
+zPID = PID([0.005, 0, 0.001], 12000, limit=[-20, 20])
 
-myPlotX = cvzone.LivePlot(yLimit=[-100, 100], char="X")
-myPlotY = cvzone.LivePlot(yLimit=[-100, 100], char="Y")
-myPlotZ = cvzone.LivePlot(yLimit=[-100, 100], char="Z")
+myPlotX = LivePlot(yLimit=[-100, 100], char="X")
+myPlotY = LivePlot(yLimit=[-100, 100], char="Y")
+myPlotZ = LivePlot(yLimit=[-100, 100], char="Z")
 
 drone = tello.Tello()
 drone.connect()

@@ -1,8 +1,7 @@
 import cv2
-import cvzone
 from djitellopy import tello
-from cvzone.HandTrackingModule import HandDetector
-from cvzone.FaceDetectionModule import FaceDetector
+from gestures.HandTrackingModule import HandDetector
+from Face.FaceDetectModule import FaceDetector
 from gestures.gestureBuffer import GestureBuffer
 from gestures.gesturecontroller import GestureController
 import time
