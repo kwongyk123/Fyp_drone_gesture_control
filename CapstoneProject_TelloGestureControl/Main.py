@@ -16,8 +16,8 @@ hi, wi = 480, 640
 
 #                  P  I  D
 xPID = PID([0.27, 0, 0.1], wi // 2)
-yPID = PID([0.27, 0, 0.1], hi // 2, axis=1)
-zPID = PID([0.005, 0, 0.001], 12000, limit=[-20, 20])
+yPID = PID([0.25, 0, 0.1], hi // 2, axis=1)
+zPID = PID([0.005, 0, 0.001], 12000, limit=[-25, 20])
 
 myPlotX = LivePlot(yLimit=[-100, 100], char="X")
 myPlotY = LivePlot(yLimit=[-100, 100], char="Y")
@@ -32,7 +32,7 @@ global gestureController
 gestureController = GestureController(drone)
 
 global gesture_buffer
-gesture_buffer = GestureBuffer(buffer_len=13)
+gesture_buffer = GestureBuffer(buffer_len=9)
 
 # 1 = gesture, 2 = facet-racking
 global mode
@@ -44,8 +44,6 @@ modeText = "Gesture"
 # global keepRecording
 # keepRecording = False
 # counter = 0
-
-
 
 def gestureControl(img, bboxs, allHands):
     global mode
@@ -238,7 +236,7 @@ try:
             break
 
     if drone.is_flying:
-        # drone.send_rc_control(0, 0, 0, 0)
+        drone.send_rc_control(0, 0, 0, 0)
         drone.land()
 
     drone.end()
