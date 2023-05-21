@@ -38,10 +38,14 @@ class GestureController:
                     self.forw_back_velocity = -20
 
                 elif gesture_id == 3:  # UP
-                    self.up_down_velocity = 25
+                    self.up_down_velocity = 30
                 elif gesture_id == 4:  # DOWN
-                    self.up_down_velocity = -25
+                    self.up_down_velocity = -30
 
+                elif gesture_id == 99:  # takeoff
+                    self.forw_back_velocity = self.up_down_velocity = \
+                        self.left_right_velocity = self.yaw_velocity = 0
+                    self.tello.takeoff()
                 elif gesture_id == 100:  # LAND
                     self._is_landing = True
                     self.forw_back_velocity = self.up_down_velocity = \
@@ -54,9 +58,9 @@ class GestureController:
                     self.left_right_velocity = -20
 
                 elif gesture_id == 9: #rotate
-                    self.yaw_velocity = 20
+                    self.yaw_velocity = 30
                 elif gesture_id == 10: #rotate
-                    self.yaw_velocity = -20
+                    self.yaw_velocity = -30
 
                 elif gesture_id == -1:
                     self.forw_back_velocity = self.up_down_velocity = \

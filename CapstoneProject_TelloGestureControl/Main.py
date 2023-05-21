@@ -1,5 +1,6 @@
 import logging
 import cv2
+import time
 from FaceTracking.PID import PID
 from FaceTracking.PlotModule import LivePlot
 from djitellopy import tello
@@ -10,7 +11,7 @@ from gestures.gesturecontroller import GestureController
 
 
 detectorHands = HandDetector(maxHands=1, detectionCon=0.7)
-detectorFace = FaceDetector()
+detectorFace = FaceDetector(minDetectionCon=0.6)
 
 hi, wi = 480, 640
 
@@ -32,7 +33,7 @@ global gestureController
 gestureController = GestureController(drone)
 
 global gesture_buffer
-gesture_buffer = GestureBuffer(buffer_len=9)
+gesture_buffer = GestureBuffer(buffer_len=10)
 
 # 1 = gesture, 2 = facet-racking
 global mode
@@ -40,10 +41,6 @@ mode = 1
 gestureText = ""
 modeText = "Gesture"
 
-# global recorder
-# global keepRecording
-# keepRecording = False
-# counter = 0
 
 def gestureControl(img, bboxs, allHands):
     global mode
@@ -108,6 +105,7 @@ def gestureControl(img, bboxs, allHands):
 
                 if gesture_id == 200:
                     mode = 2
+                    gestureController.drone_stop()
 
                 gestureController.gesture_control(gesture_id)
 
@@ -124,10 +122,10 @@ def gestureControl(img, bboxs, allHands):
                     gesture_buffer.add_gesture(10)
 
                 # elif fingers == [0, 1, 1, 1, 1]:
-                #     gestureText = "RecordStop"
+                #     gestureText ·、= "RecordStop"
                 #     gesture_buffer.add_gesture(81)
 
-                cv2.putText(img, f'{gestureText}', (20, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+                cv2.putText(img, f'{gestureText}', (20, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0,  0), 2)
                 gesture_id = gesture_buffer.get_gesture()
 
                 gestureController.gesture_control(gesture_id)
@@ -139,6 +137,7 @@ def faceTracking(img, bboxs, allHands):
     xVal = 0
     yVal = 0
     zVal = 0
+    lVal = 0
     imgStacked = ""
     global mode
     if bboxs and drone.is_flying:
@@ -151,6 +150,12 @@ def faceTracking(img, bboxs, allHands):
                 elif fingers == [1, 1, 1, 0, 0]:
                     gestureText = "switch Mode"
                     gesture_buffer.add_gesture(201)
+                elif fingers == [0, 0, 0, 0, 1]:
+                    gestureText = "right"
+                    lVal = -25
+                elif fingers == [1, 0, 0, 0, 0]:
+                    gestureText = "left"
+                    lVal = 25
                 else:
                     gestureText = ""
                 cv2.putText(img, f'{gestureText}', (20, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
@@ -181,7 +186,7 @@ def faceTracking(img, bboxs, allHands):
         cv2.putText(imgStacked, str(area), (20, 50), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 0), 3)
     else:
         imgStacked = LivePlot.stackImages([img], 1, 0.75)
-    drone.send_rc_control(0, -zVal, -yVal, xVal)
+    drone.send_rc_control(lVal, -zVal, -yVal, xVal)
     return imgStacked
 
 
@@ -229,8 +234,10 @@ try:
             mode = 2
 
         if cv2.waitKey(5) & 0xFF == ord('e') and not drone.is_flying:
-            drone.takeoff()
             gestureController.drone_stop()
+            drone.takeoff()
+            time.sleep(1)
+
 
         if cv2.waitKey(5) & 0xFF == ord('q'):
             break
@@ -239,7 +246,6 @@ try:
         drone.send_rc_control(0, 0, 0, 0)
         drone.land()
 
-    drone.end()
     cv2.destroyAllWindows()
 
 except:
