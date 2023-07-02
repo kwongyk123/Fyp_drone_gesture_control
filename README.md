@@ -7,7 +7,7 @@
 ## View the documentation:
 [Documentation Link](Report/21028468D_FinalReport.pdf)
 
-Drone model: 
+## Drone model: 
 <img src='Img/tello.jpg'> 
 
 Control Menu :
