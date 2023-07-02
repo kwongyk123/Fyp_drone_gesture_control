@@ -17,3 +17,6 @@ Keyboard Control Menu: <br/>
 “E”	Take off the drone <br/>
 “G”	Switch to gesture control mode <br/>
 “F”	Switch to face tracking mode <br/>
+
+There are 13 kinds of gestures, and different instructions will be sent according to different gestures, the same set of gestures will be different depending on the left or right hand. <br/>
+You can watch all gestures at the end of the document.
