@@ -4,6 +4,7 @@
 <img src="https://img.shields.io/badge/Gesture%20Detection-%20-green">
 
 ## introduction
+This project utilizes Mediapipe to implement gesture detection and facial recognition for controlling a drone.
 
 ## View the documentation:
 [Documentation Link](Report/21028468D_FinalReport.pdf)
